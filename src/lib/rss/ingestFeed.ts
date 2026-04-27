@@ -65,7 +65,7 @@ export async function ingestFeed(db: Database, feed: IngestFeedInput): Promise<I
     }
 
     try {
-      const inserted = await db
+      const insertResult = await db
         .insert(newsItems)
         .values({
           title: item.title,
@@ -82,12 +82,12 @@ export async function ingestFeed(db: Database, feed: IngestFeedInput): Promise<I
           updatedAt: nowIsoString()
         })
         .onConflictDoNothing({ target: newsItems.normalizedUrl })
-        .returning({ id: newsItems.id });
+        .run();
 
-      if (inserted.length === 0) {
-        result.skippedDuplicates += 1;
+      if (insertResult.meta.changes > 0) {
+        result.inserted += insertResult.meta.changes;
       } else {
-        result.inserted += inserted.length;
+        result.skippedDuplicates += 1;
       }
     } catch (error) {
       result.skippedInvalid += 1;
