@@ -2,7 +2,6 @@ import { and, desc, eq, like, or, sql } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
-import { NEWS_STATUSES } from '$lib/constants/classification';
 import { createDb } from '$lib/db/client';
 import { newsItems, rssFeeds } from '$lib/db/schema';
 import { isNewsStatus, parseNewsStatusFilter } from '$lib/news/statusValidation';
@@ -123,8 +122,7 @@ export const load: PageServerLoad = async (event) => {
       hasNext: filteredItems.length > PAGE_SIZE,
       hasPrev: page > 1,
       limit: PAGE_SIZE
-    },
-    statusOptions: NEWS_STATUSES
+    }
   };
 };
 
