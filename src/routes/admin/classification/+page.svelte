@@ -173,6 +173,7 @@
               <tr>
                 <td class="px-3 py-2">
                   <input
+                    aria-label={`ニュースID ${item.id} を選択`}
                     checked={selectedIds.has(item.id)}
                     onchange={() => toggleSelection(item.id)}
                     type="checkbox"
@@ -188,7 +189,7 @@
                 <td class="px-3 py-2">{item.fetchedAt}</td>
                 <td class="px-3 py-2">{item.language} / {item.country}</td>
                 <td class="px-3 py-2">
-                  <a class="text-blue-700 underline" href={item.url} rel="noreferrer" target="_blank">Open</a>
+                  <a class="text-blue-700 underline" href={item.url} rel="noopener noreferrer" target="_blank">Open</a>
                 </td>
               </tr>
             {/each}
