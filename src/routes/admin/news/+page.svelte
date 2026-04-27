@@ -166,23 +166,27 @@
     </div>
 
     <div class="flex items-center justify-between text-sm">
-      <a
-        class={`rounded border px-3 py-1 ${data.pagination.hasPrev
-          ? 'border-slate-300 bg-white hover:bg-slate-50'
-          : 'pointer-events-none border-slate-200 bg-slate-100 text-slate-400'}`}
-        href={buildQuery(data.filters.status ?? undefined, data.pagination.page - 1)}
-      >
-        Previous
-      </a>
+      {#if data.pagination.hasPrev}
+        <a
+          class="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-50"
+          href={buildQuery(data.filters.status ?? undefined, data.pagination.page - 1)}
+        >
+          Previous
+        </a>
+      {:else}
+        <span class="rounded border border-slate-200 bg-slate-100 px-3 py-1 text-slate-400">Previous</span>
+      {/if}
       <span class="text-slate-600">Page {data.pagination.page}</span>
-      <a
-        class={`rounded border px-3 py-1 ${data.pagination.hasNext
-          ? 'border-slate-300 bg-white hover:bg-slate-50'
-          : 'pointer-events-none border-slate-200 bg-slate-100 text-slate-400'}`}
-        href={buildQuery(data.filters.status ?? undefined, data.pagination.page + 1)}
-      >
-        Next
-      </a>
+      {#if data.pagination.hasNext}
+        <a
+          class="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-50"
+          href={buildQuery(data.filters.status ?? undefined, data.pagination.page + 1)}
+        >
+          Next
+        </a>
+      {:else}
+        <span class="rounded border border-slate-200 bg-slate-100 px-3 py-1 text-slate-400">Next</span>
+      {/if}
     </div>
   {/if}
 </section>
