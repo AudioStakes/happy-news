@@ -10,13 +10,12 @@ Implemented now:
 - SvelteKit + TypeScript project scaffold
 - Tailwind CSS setup
 - Cloudflare Pages adapter/config placeholders
-- Cloudflare D1 + Drizzle configuration placeholders
+- Cloudflare D1 + Drizzle schema foundation
 - Placeholder pages for user/admin routes
 - Basic `src/lib` folder structure for future business logic
 
 Not implemented yet:
 - RSS fetching
-- Real DB schema and migrations
 - Classification workflow logic
 - Recommendation logic
 - Authentication
@@ -76,8 +75,8 @@ Useful scripts:
 - `npm run lint` – Prettier + ESLint checks
 - `npm run format` – auto-format with Prettier
 - `npm run test` – run test suite (placeholder)
-- `npm run db:generate` – generate Drizzle migrations (future schema)
-- `npm run db:migrate` – run Drizzle migrations
+- `npm run db:generate` – generate Drizzle migrations from current schema
+- `npm run db:migrate` – Drizzle migration command (for SQLite/local workflows)
 
 ## Cloudflare / D1 setup notes
 
@@ -85,10 +84,31 @@ Useful scripts:
 - Copy `.env.example` to `.env` and fill placeholders when using Drizzle CLI.
 - Keep DB access server-side only.
 
+## Database foundation (Drizzle + D1)
+
+- Drizzle schema lives in `src/lib/db/schema.ts`.
+- Classification/status constants live in `src/lib/constants/classification.ts`.
+- The D1 Drizzle client helper is in `src/lib/db/client.ts` (server-side use only).
+- `wrangler.toml` still uses a placeholder D1 database ID; replace it before deployment.
+
+Generate a migration locally:
+
+```bash
+npm run db:generate
+```
+
+Apply generated migrations to D1 with Wrangler:
+
+```bash
+npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --local
+npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
+```
+
+> This project stores RSS metadata only. Do not store article body text or generated summaries.
+
 ## Future implementation phases
 
 1. Implement RSS feed registration and metadata ingestion.
-2. Add minimal D1 schema + Drizzle migrations.
-3. Build admin classification prompt + JSON validation flow.
-4. Add user rating capture and simple recommendation scoring.
-5. Add admin auth protection and security hardening.
+2. Build admin classification prompt + JSON validation flow.
+3. Add user rating capture and simple recommendation scoring.
+4. Add admin auth protection and security hardening.
