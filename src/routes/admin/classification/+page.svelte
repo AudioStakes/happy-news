@@ -198,9 +198,12 @@
     {/if}
 
     <section class="space-y-2 rounded border border-slate-200 bg-white p-4">
-      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Generated ChatGPT Prompt</h3>
+      <h3 id="generated-chatgpt-prompt-label" class="text-sm font-semibold uppercase tracking-wide text-slate-600">
+        Generated ChatGPT Prompt
+      </h3>
       <textarea
         class="h-96 w-full rounded border border-slate-300 p-2 font-mono text-xs"
+        aria-labelledby="generated-chatgpt-prompt-label"
         readonly
         value={generatedPrompt}
       ></textarea>
