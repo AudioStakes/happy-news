@@ -16,9 +16,9 @@
 
   {#if form?.message}
     <div
-      class={`rounded border px-3 py-2 text-sm ${form.ingestResult?.errors?.length
-        ? 'border-amber-300 bg-amber-50 text-amber-800'
-        : 'border-emerald-300 bg-emerald-50 text-emerald-800'}`}
+      class={`rounded border px-3 py-2 text-sm ${form.success
+        ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+        : 'border-rose-300 bg-rose-50 text-rose-700'}`}
     >
       <p>{form.message}</p>
     </div>

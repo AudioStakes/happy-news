@@ -54,7 +54,8 @@ export const actions: Actions = {
     if (!db) {
       return fail(500, {
         message:
-          'Cloudflare D1 binding is missing. Add DB to event.platform.env.DB before using /admin/rss.'
+          'Cloudflare D1 binding is missing. Add DB to event.platform.env.DB before using /admin/rss.',
+        success: false
       });
     }
 
@@ -69,7 +70,7 @@ export const actions: Actions = {
     });
 
     if (!parsed.ok) {
-      return fail(400, { message: parsed.error });
+      return fail(400, { message: parsed.error, success: false });
     }
 
     try {
@@ -80,16 +81,18 @@ export const actions: Actions = {
       });
 
       return {
-        message: `Registered feed: ${parsed.value.name}`
+        message: `Registered feed: ${parsed.value.name}`,
+        success: true
       };
     } catch (error) {
       const duplicateMessage = duplicateUrlMessage(error);
       if (duplicateMessage) {
-        return fail(409, { message: duplicateMessage });
+        return fail(409, { message: duplicateMessage, success: false });
       }
 
       return fail(500, {
-        message: 'Failed to register feed. Please check the input and try again.'
+        message: 'Failed to register feed. Please check the input and try again.',
+        success: false
       });
     }
   },
@@ -99,7 +102,8 @@ export const actions: Actions = {
     if (!db) {
       return fail(500, {
         message:
-          'Cloudflare D1 binding is missing. Add DB to event.platform.env.DB before using /admin/rss.'
+          'Cloudflare D1 binding is missing. Add DB to event.platform.env.DB before using /admin/rss.',
+        success: false
       });
     }
 
@@ -107,12 +111,12 @@ export const actions: Actions = {
     const feedId = Number(formData.get('feed_id'));
 
     if (!Number.isInteger(feedId) || feedId <= 0) {
-      return fail(400, { message: 'Invalid feed id.' });
+      return fail(400, { message: 'Invalid feed id.', success: false });
     }
 
     const [feed] = await db.select().from(rssFeeds).where(eq(rssFeeds.id, feedId)).limit(1);
     if (!feed) {
-      return fail(404, { message: 'Feed not found.' });
+      return fail(404, { message: 'Feed not found.', success: false });
     }
 
     await db
@@ -124,7 +128,8 @@ export const actions: Actions = {
       .where(eq(rssFeeds.id, feedId));
 
     return {
-      message: `${feed.name} is now ${feed.isActive ? 'inactive' : 'active'}.`
+      message: `${feed.name} is now ${feed.isActive ? 'inactive' : 'active'}.`,
+      success: true
     };
   },
 
@@ -133,7 +138,8 @@ export const actions: Actions = {
     if (!db) {
       return fail(500, {
         message:
-          'Cloudflare D1 binding is missing. Add DB to event.platform.env.DB before using /admin/rss.'
+          'Cloudflare D1 binding is missing. Add DB to event.platform.env.DB before using /admin/rss.',
+        success: false
       });
     }
 
@@ -141,17 +147,18 @@ export const actions: Actions = {
     const feedId = Number(formData.get('feed_id'));
 
     if (!Number.isInteger(feedId) || feedId <= 0) {
-      return fail(400, { message: 'Invalid feed id.' });
+      return fail(400, { message: 'Invalid feed id.', success: false });
     }
 
     const [feed] = await db.select().from(rssFeeds).where(eq(rssFeeds.id, feedId)).limit(1);
     if (!feed) {
-      return fail(404, { message: 'Feed not found.' });
+      return fail(404, { message: 'Feed not found.', success: false });
     }
 
     if (!feed.isActive) {
       return fail(400, {
-        message: 'This feed is inactive. Activate it before running manual ingestion.'
+        message: 'This feed is inactive. Activate it before running manual ingestion.',
+        success: false
       });
     }
 
@@ -166,13 +173,15 @@ export const actions: Actions = {
     if (result.errors.length > 0) {
       return fail(400, {
         message: `Ingestion completed with errors for ${feed.name}.`,
-        ingestResult: result
+        ingestResult: result,
+        success: false
       });
     }
 
     return {
       message: `Ingestion completed for ${feed.name}.`,
-      ingestResult: result
+      ingestResult: result,
+      success: true
     };
   }
 };
