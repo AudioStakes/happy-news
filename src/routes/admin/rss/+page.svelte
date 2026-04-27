@@ -40,7 +40,7 @@
 
       <label class="space-y-1 text-sm md:col-span-2">
         <span class="font-medium text-slate-700">Feed URL *</span>
-        <input class="w-full rounded border border-slate-300 px-2 py-1" name="url" required />
+        <input class="w-full rounded border border-slate-300 px-2 py-1" type="url" name="url" required />
       </label>
 
       <label class="space-y-1 text-sm">
