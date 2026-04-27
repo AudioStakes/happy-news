@@ -113,6 +113,9 @@ npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 - Manual ingestion stores RSS metadata only (title, source, published date, link, and related feed metadata).
 - `/admin/news` lists fetched RSS metadata and supports status filtering, search, and archive/unarchive actions.
 - The news list is RSS metadata only; it does not fetch article bodies or generate summaries.
+- `/admin/classification` can generate a manual ChatGPT browser prompt from selected unclassified RSS metadata.
+- Classification JSON paste/import is a future task (not implemented yet).
+- The app still does not use OpenAI API and still does not scrape article bodies or generate summaries.
 - `/admin/*` is protected by HTTP Basic Auth when `ADMIN_SECRET` is set; configure this secret in deployments to restrict admin access.
 
 ## Future implementation phases
