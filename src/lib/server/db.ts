@@ -1,8 +1,4 @@
-import { drizzle } from 'drizzle-orm/d1';
+import { createDb } from '../db/client';
 
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import * as schema from '../db/schema';
-
-export type Database = DrizzleD1Database<typeof schema>;
-
-export const createDb = (binding: D1Database): Database => drizzle(binding, { schema });
+export { createDb };
+export type { Database } from '../db/client';
