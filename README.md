@@ -72,18 +72,20 @@ Useful scripts:
 - `npm run dev` – start local dev server
 - `npm run build` – production build
 - `npm run preview` – preview build locally
-- `npm run check` – Svelte + TypeScript checks
+- `npm run check` – Svelte sync + TypeScript checks
 - `npm run lint` – Prettier + ESLint checks
 - `npm run format` – auto-format with Prettier
 - `npm run test` – run test suite (placeholder)
+- `npm run db:generate` – generate Drizzle migrations (future schema)
+- `npm run db:migrate` – run Drizzle migrations
 
 ## Cloudflare / D1 setup notes
 
 - Update `wrangler.toml` with your D1 database ID.
-- Update `drizzle.config.ts` credentials/placeholders.
+- Copy `.env.example` to `.env` and fill placeholders when using Drizzle CLI.
 - Keep DB access server-side only.
 
-## Planned next phases
+## Future implementation phases
 
 1. Implement RSS feed registration and metadata ingestion.
 2. Add minimal D1 schema + Drizzle migrations.
