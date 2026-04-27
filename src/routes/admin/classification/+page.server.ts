@@ -113,9 +113,9 @@ export const actions: Actions = {
     const formData = await event.request.formData();
     const rawJson = String(formData.get('raw_json') ?? '');
     const parsed = parseClassificationJson(rawJson);
-    const fallbackInputIds = extractInputNewsIds(rawJson);
 
     if (!parsed.ok) {
+      const fallbackInputIds = extractInputNewsIds(rawJson);
       await persistFailedImport(db, rawJson, parsed.errors, fallbackInputIds);
 
       return fail(400, {
