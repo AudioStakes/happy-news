@@ -1,3 +1,4 @@
+import { dev } from '$app/environment';
 import type { RequestEvent } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 
@@ -6,6 +7,9 @@ import { anonymousUsers } from '$lib/db/schema';
 
 export const ANONYMOUS_USER_COOKIE_NAME = 'happy_news_user_id';
 export const ANONYMOUS_USER_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+
+const MAX_PUBLIC_ID_LENGTH = 128;
+const PUBLIC_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 export type AnonymousUser = {
   id: number;
@@ -20,6 +24,11 @@ export function generateAnonymousPublicId(): string {
   return `anon_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
 }
 
+export function isValidAnonymousPublicId(publicId: string): boolean {
+  const value = publicId.trim();
+  return value.length > 0 && value.length <= MAX_PUBLIC_ID_LENGTH && PUBLIC_ID_PATTERN.test(value);
+}
+
 export function buildAnonymousCookieOptions(secure: boolean) {
   return {
     httpOnly: true,
@@ -30,12 +39,15 @@ export function buildAnonymousCookieOptions(secure: boolean) {
   };
 }
 
-function shouldUseSecureCookie(event: RequestEvent): boolean {
-  return event.url.protocol === 'https:';
+function shouldUseSecureCookie(): boolean {
+  return !dev;
 }
 
 async function createAnonymousUser(db: DbClient, preferredPublicId?: string): Promise<AnonymousUser> {
-  let publicId = preferredPublicId ?? generateAnonymousPublicId();
+  let publicId =
+    preferredPublicId && isValidAnonymousPublicId(preferredPublicId)
+      ? preferredPublicId
+      : generateAnonymousPublicId();
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
@@ -62,8 +74,9 @@ async function createAnonymousUser(db: DbClient, preferredPublicId?: string): Pr
 }
 
 export async function getOrCreateAnonymousUser(event: RequestEvent, db: DbClient): Promise<AnonymousUser> {
-  const secure = shouldUseSecureCookie(event);
-  const cookiePublicId = event.cookies.get(ANONYMOUS_USER_COOKIE_NAME)?.trim();
+  const secure = shouldUseSecureCookie();
+  const rawCookieValue = event.cookies.get(ANONYMOUS_USER_COOKIE_NAME);
+  const cookiePublicId = rawCookieValue && isValidAnonymousPublicId(rawCookieValue) ? rawCookieValue : null;
 
   if (cookiePublicId) {
     const existingRows = await db
@@ -87,7 +100,7 @@ export async function getOrCreateAnonymousUser(event: RequestEvent, db: DbClient
     }
   }
 
-  const created = await createAnonymousUser(db, cookiePublicId);
+  const created = await createAnonymousUser(db, cookiePublicId ?? undefined);
   event.cookies.set(ANONYMOUS_USER_COOKIE_NAME, created.publicId, buildAnonymousCookieOptions(secure));
   return created;
 }
