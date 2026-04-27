@@ -104,7 +104,7 @@ npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 ```
 
 > This project stores RSS metadata only. Do not store article body text or generated summaries.
-> RSS ingestion helpers live in `src/lib/rss/*` for future admin/cron server-side routes.
+> RSS ingestion helpers live in `src/lib/rss/*` (`fetchFeed`, `parseRssXml`, `normalizeUrl`, `ingestFeed`) for future admin/cron server-side routes.
 
 ## Future implementation phases
 
