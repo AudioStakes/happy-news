@@ -15,7 +15,6 @@ Implemented now:
 - Basic `src/lib` folder structure for future business logic
 
 Not implemented yet:
-- RSS fetching
 - Classification workflow logic
 - Recommendation logic
 - Authentication
@@ -105,6 +104,7 @@ npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 ```
 
 > This project stores RSS metadata only. Do not store article body text or generated summaries.
+> RSS ingestion helpers live in `src/lib/rss/*` for future admin/cron server-side routes.
 
 ## Future implementation phases
 
