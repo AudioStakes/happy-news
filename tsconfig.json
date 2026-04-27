@@ -10,6 +10,6 @@
     "strict": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "@cloudflare/workers-types"]
   }
 }

@@ -6,7 +6,7 @@ import {
   IMPORT_BATCH_STATUSES,
   NEWS_STATUSES,
   USER_PREFERENCE_TARGET_TYPES
-} from '$lib/constants/classification';
+} from '../constants/classification';
 
 export const rssFeeds = sqliteTable(
   'rss_feeds',
@@ -56,7 +56,7 @@ export const newsItems = sqliteTable(
     rssFeedIdIdx: index('news_items_rss_feed_id_idx').on(table.rssFeedId),
     statusCheck: check(
       'news_items_status_check',
-      sql`${table.status} in ('unclassified', 'candidate', 'rejected', 'archived')`
+      sql`${table.status} in (${sql.raw(NEWS_STATUSES.map((s) => `'${s}'`).join(', '))})`
     )
   })
 );
@@ -98,7 +98,7 @@ export const newsFeatures = sqliteTable(
     ),
     classifiedByCheck: check(
       'news_features_classified_by_check',
-      sql`${table.classifiedBy} is null or ${table.classifiedBy} in ('chatgpt_manual', 'keyword_rule', 'admin')`
+      sql`${table.classifiedBy} is null or ${table.classifiedBy} in (${sql.raw(CLASSIFIED_BY_VALUES.map((v) => `'${v}'`).join(', '))})`
     )
   })
 );
@@ -116,16 +116,22 @@ export const anonymousUsers = sqliteTable(
   })
 );
 
-export const userOnboardingPreferences = sqliteTable('user_onboarding_preferences', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id')
-    .notNull()
-    .references(() => anonymousUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-  selectedTopicsJson: text('selected_topics_json').notNull(),
-  selectedEmotionsJson: text('selected_emotions_json').notNull(),
-  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
-});
+export const userOnboardingPreferences = sqliteTable(
+  'user_onboarding_preferences',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => anonymousUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    selectedTopicsJson: text('selected_topics_json').notNull(),
+    selectedEmotionsJson: text('selected_emotions_json').notNull(),
+    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
+  },
+  (table) => ({
+    userIdUnique: uniqueIndex('user_onboarding_preferences_user_id_unique').on(table.userId)
+  })
+);
 
 export const userRatings = sqliteTable(
   'user_ratings',
@@ -175,7 +181,7 @@ export const userPreferenceScores = sqliteTable(
     ),
     targetTypeCheck: check(
       'user_preference_scores_target_type_check',
-      sql`${table.targetType} in ('topic', 'emotion', 'story_type', 'risk_flag')`
+      sql`${table.targetType} in (${sql.raw(USER_PREFERENCE_TARGET_TYPES.map((v) => `'${v}'`).join(', '))})`
     ),
     scoreCheck: check('user_preference_scores_score_check', sql`${table.score} >= 0 and ${table.score} <= 1`)
   })
@@ -196,9 +202,13 @@ export const adminImportBatches = sqliteTable(
   (table) => ({
     statusIdx: index('admin_import_batches_status_idx').on(table.status),
     createdAtIdx: index('admin_import_batches_created_at_idx').on(table.createdAt),
+    importedCountCheck: check(
+      'admin_import_batches_imported_count_check',
+      sql`${table.importedCount} >= 0`
+    ),
     statusCheck: check(
       'admin_import_batches_status_check',
-      sql`${table.status} in ('pending', 'validated', 'imported', 'failed')`
+      sql`${table.status} in (${sql.raw(IMPORT_BATCH_STATUSES.map((s) => `'${s}'`).join(', '))})`
     )
   })
 );
