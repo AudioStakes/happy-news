@@ -241,20 +241,35 @@ export function validateClassificationJson(
       continue;
     }
 
-    if (topics && rawRow.is_happy_candidate === true && topics.length === 0) {
+    const isHappyCandidate = rawRow.is_happy_candidate;
+    if (
+      newsId === null ||
+      happyScore === null ||
+      negativeContextLevel === null ||
+      commercialPrLevel === null ||
+      topics === null ||
+      emotions === null ||
+      storyTypes === null ||
+      riskFlags === null ||
+      typeof isHappyCandidate !== 'boolean'
+    ) {
+      continue;
+    }
+
+    if (isHappyCandidate && topics.length === 0) {
       warnings.push(`results[${rowNumber}].topics is empty. Confirm this item is truly unclear.`);
     }
 
     validResults.push({
-      newsId: newsId as number,
-      isHappyCandidate: rawRow.is_happy_candidate as boolean,
-      happyScore: happyScore as number,
-      topics: topics as string[],
-      emotions: emotions as string[],
-      storyTypes: storyTypes as string[],
-      riskFlags: riskFlags as string[],
-      negativeContextLevel: negativeContextLevel as number,
-      commercialPrLevel: commercialPrLevel as number
+      newsId,
+      isHappyCandidate,
+      happyScore,
+      topics,
+      emotions,
+      storyTypes,
+      riskFlags,
+      negativeContextLevel,
+      commercialPrLevel
     });
   }
 

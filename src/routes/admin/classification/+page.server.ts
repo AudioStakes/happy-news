@@ -11,6 +11,7 @@ const DB_MISSING_MESSAGE =
   'Cloudflare D1 binding is missing. Add DB to event.platform.env.DB before using /admin/classification.';
 
 type DbClient = ReturnType<typeof createDb>;
+type ReadDb = Pick<DbClient, 'select'>;
 
 class ImportValidationError extends Error {
   constructor(public readonly messages: string[]) {
@@ -56,7 +57,7 @@ function toPreviewRows(results: ValidClassificationResult[]) {
   }));
 }
 
-async function validateAgainstDatabase(inputNewsIds: number[], db: DbClient): Promise<string[]> {
+async function validateAgainstDatabase(inputNewsIds: number[], db: ReadDb): Promise<string[]> {
   if (inputNewsIds.length === 0) {
     return [];
   }
@@ -101,7 +102,7 @@ async function persistFailedImport(db: DbClient, rawJson: string, errors: string
 async function importValidatedResults(db: DbClient, rawJson: string, results: ValidClassificationResult[]) {
   await db.transaction(async (tx) => {
     const targetIds = results.map((result) => result.newsId);
-    const dbErrors = await validateAgainstDatabase(targetIds, db);
+    const dbErrors = await validateAgainstDatabase(targetIds, tx);
     if (dbErrors.length > 0) {
       throw new ImportValidationError(dbErrors);
     }
