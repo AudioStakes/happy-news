@@ -47,6 +47,10 @@ export type ClassificationValidationResult =
       warnings: string[];
     };
 
+type ValidateOptions = {
+  allowedNewsIds?: Set<number>;
+};
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -103,7 +107,10 @@ function validateResultShape(row: Record<string, unknown>, rowNumber: number, er
   return unknownKeys.length === 0 && missingKeys.length === 0;
 }
 
-export function validateClassificationJson(rawJson: string): ClassificationValidationResult {
+export function validateClassificationJson(
+  rawJson: string,
+  options?: ValidateOptions
+): ClassificationValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -185,6 +192,8 @@ export function validateClassificationJson(rawJson: string): ClassificationValid
       errors.push(`results[${rowNumber}].news_id must be a positive integer.`);
     } else if (seenNewsIds.has(newsId)) {
       errors.push(`results[${rowNumber}].news_id is duplicated (${newsId}).`);
+    } else if (options?.allowedNewsIds && !options.allowedNewsIds.has(newsId)) {
+      errors.push(`results[${rowNumber}].news_id is not allowed for this import (${newsId}).`);
     } else {
       seenNewsIds.add(newsId);
     }

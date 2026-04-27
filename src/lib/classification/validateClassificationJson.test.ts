@@ -29,6 +29,13 @@ describe('validateClassificationJson', () => {
     }
   });
 
+  it('fails when allowedNewsIds option does not include an id', () => {
+    const result = validateClassificationJson(validJson, {
+      allowedNewsIds: new Set([999])
+    });
+    expect(result.ok).toBe(false);
+  });
+
   it('fails for invalid JSON', () => {
     const result = validateClassificationJson('{ nope');
     expect(result.ok).toBe(false);
