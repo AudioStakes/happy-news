@@ -113,7 +113,7 @@ npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 - Manual ingestion stores RSS metadata only (title, source, published date, link, and related feed metadata).
 - `/admin/news` lists fetched RSS metadata and supports status filtering, search, and archive/unarchive actions.
 - The news list is RSS metadata only; it does not fetch article bodies or generate summaries.
-- Admin protection is not implemented yet and will be added in a later task.
+- `/admin/*` is protected by HTTP Basic Auth when `ADMIN_SECRET` is set; configure this secret in deployments to restrict admin access.
 
 ## Future implementation phases
 
