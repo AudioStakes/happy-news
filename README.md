@@ -118,6 +118,14 @@ npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 - The app still does not use OpenAI API and still does not scrape article bodies or generate summaries.
 - `/admin/*` is protected by HTTP Basic Auth when `ADMIN_SECRET` is set; configure this secret in deployments to restrict admin access.
 
+
+## User home page (current)
+
+- `/` now shows up to 3 classified candidate happy news cards.
+- Cards show only title, source name, published date (or fetched date fallback), and an external article link.
+- Anonymous users are identified server-side with an `httpOnly` cookie and backed by the `anonymous_users` table.
+- Rating UI and recommendation personalization are intentionally deferred to future tasks.
+
 ## Future implementation phases
 
 1. Implement RSS feed registration and metadata ingestion.
