@@ -1,18 +1,12 @@
-import 'server-only';
+import { eq, sql } from 'drizzle-orm';
 
-import { eq } from 'drizzle-orm';
-
-import type { Database } from '$lib/db/client';
 import { newsItems, rssFeeds } from '$lib/db/schema';
+import { fetchFeed } from '../rss/fetchFeed';
+import { normalizeUrl } from '../rss/normalizeUrl';
+import { parseRssXml } from '../rss/parseRss';
+import type { IngestFeedInput, IngestFeedResult } from '../rss/types';
 
-import { fetchFeed } from './fetchFeed';
-import { normalizeUrl } from './normalizeUrl';
-import { parseRssXml } from './parseRss';
-import type { IngestFeedInput, IngestFeedResult } from './types';
-
-function nowIsoString(): string {
-  return new Date().toISOString();
-}
+import type { Database } from './db';
 
 function isLikelyHttpUrl(value: string): boolean {
   try {
@@ -41,13 +35,22 @@ export async function ingestFeed(db: Database, feed: IngestFeedInput): Promise<I
     return result;
   }
 
-  await db
-    .update(rssFeeds)
-    .set({
-      lastFetchedAt: nowIsoString(),
-      updatedAt: nowIsoString()
-    })
-    .where(eq(rssFeeds.id, feed.id));
+  try {
+    await db
+      .update(rssFeeds)
+      .set({
+        lastFetchedAt: sql`CURRENT_TIMESTAMP`,
+        updatedAt: sql`CURRENT_TIMESTAMP`
+      })
+      .where(eq(rssFeeds.id, feed.id));
+  } catch (error) {
+    result.errors.push(
+      error instanceof Error
+        ? `Failed to update timestamps for feed ${feed.id}: ${error.message}`
+        : `Failed to update timestamps for feed ${feed.id}`
+    );
+    return result;
+  }
 
   const parsedItems = parseRssXml(xml);
   result.fetched = parsedItems.length;
@@ -77,9 +80,7 @@ export async function ingestFeed(db: Database, feed: IngestFeedInput): Promise<I
           description: item.description,
           language: feed.language,
           country: feed.country,
-          status: 'unclassified',
-          fetchedAt: nowIsoString(),
-          updatedAt: nowIsoString()
+          status: 'unclassified'
         })
         .onConflictDoNothing({ target: newsItems.normalizedUrl })
         .run();
@@ -91,7 +92,11 @@ export async function ingestFeed(db: Database, feed: IngestFeedInput): Promise<I
       }
     } catch (error) {
       result.skippedInvalid += 1;
-      result.errors.push(error instanceof Error ? error.message : 'Failed to insert news item');
+      result.errors.push(
+        error instanceof Error
+          ? `Failed to insert news item (${item.url}): ${error.message}`
+          : `Failed to insert news item: ${item.url}`
+      );
     }
   }
 
