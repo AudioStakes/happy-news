@@ -106,6 +106,13 @@ npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 > This project stores RSS metadata only. Do not store article body text or generated summaries.
 > RSS ingestion helpers live in `src/lib/rss/*` (`fetchFeed`, `parseRssXml`, `normalizeUrl`, `ingestFeed`) for future admin/cron server-side routes.
 
+
+## Admin RSS management (current)
+
+- `/admin/rss` can register RSS feeds and manually run ingestion for one feed.
+- Manual ingestion stores RSS metadata only (title, source, published date, link, and related feed metadata).
+- Admin protection is not implemented yet and will be added in a later task.
+
 ## Future implementation phases
 
 1. Implement RSS feed registration and metadata ingestion.
