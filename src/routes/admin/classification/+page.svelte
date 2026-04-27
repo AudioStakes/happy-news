@@ -6,7 +6,7 @@
   } from '$lib/classification/buildPrompt';
   import type { PageData } from './$types';
 
-  let { data }: { data: PageData } = $props();
+  let { data, form }: { data: PageData; form: import('./$types').ActionData } = $props();
 
   let selectedIds = $state(new Set<number>());
   let generatedPrompt = $state('');
@@ -101,10 +101,10 @@
   <div class="space-y-2">
     <h2 class="text-xl font-semibold">Classification Workflow</h2>
     <p class="text-sm text-slate-600">
-      Admin保護は後続タスクで強化予定です。このページは管理者がChatGPTブラウザで手動分類するためのプロンプト生成専用です。
+      Admin保護は後続タスクで強化予定です。このページは管理者がChatGPTブラウザで手動分類するために利用します。
     </p>
     <p class="text-sm text-slate-600">
-      未分類ニュースを最大{MAX_CLASSIFICATION_SELECTION}件選択し、日本語プロンプトを生成できます（JSON取り込みは未実装）。
+      未分類ニュースを最大{MAX_CLASSIFICATION_SELECTION}件選択し、日本語プロンプトを生成できます。
     </p>
   </div>
 
@@ -208,6 +208,98 @@
         readonly
         value={generatedPrompt}
       ></textarea>
+    </section>
+
+    <section class="space-y-3 rounded border border-slate-200 bg-white p-4">
+      <h3 class="text-base font-semibold">Paste ChatGPT JSON</h3>
+      <p class="text-sm text-slate-600">
+        Paste the JSON returned by ChatGPT browser. The app will validate it before any DB writes.
+      </p>
+      <p class="text-sm text-slate-600">The app never executes ChatGPT output as SQL. Only validated structured fields are saved.</p>
+
+      <form class="space-y-3" method="POST">
+        <textarea
+          class="h-72 w-full rounded border border-slate-300 p-2 font-mono text-xs"
+          name="raw_json"
+          placeholder='&#123;"results": [...]&#125;'
+          required
+        >{form?.rawJson ?? ''}</textarea>
+        <div class="flex flex-wrap gap-2">
+          <button
+            class="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+            formaction="?/validateJson"
+            type="submit"
+          >
+            Validate JSON
+          </button>
+          <button class="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700" formaction="?/importJson" type="submit">
+            Import JSON
+          </button>
+        </div>
+      </form>
+
+      {#if form?.message}
+        <div class={`rounded px-3 py-2 text-sm ${form.success ? 'border border-emerald-300 bg-emerald-50 text-emerald-700' : 'border border-rose-300 bg-rose-50 text-rose-700'}`}>
+          {form.message}
+        </div>
+      {/if}
+
+      {#if form?.validationErrors?.length}
+        <div class="rounded border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <p class="font-semibold">Validation errors</p>
+          <ul class="list-inside list-disc">
+            {#each form.validationErrors as error}
+              <li>{error}</li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+
+      {#if form?.validationWarnings?.length}
+        <div class="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <p class="font-semibold">Validation warnings</p>
+          <ul class="list-inside list-disc">
+            {#each form.validationWarnings as warning}
+              <li>{warning}</li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+
+      {#if form?.previewResults?.length}
+        <div class="overflow-x-auto rounded border border-slate-200">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600">
+              <tr>
+                <th class="px-3 py-2">news_id</th>
+                <th class="px-3 py-2">is_happy_candidate</th>
+                <th class="px-3 py-2">happy_score</th>
+                <th class="px-3 py-2">topics</th>
+                <th class="px-3 py-2">emotions</th>
+                <th class="px-3 py-2">story_types</th>
+                <th class="px-3 py-2">risk_flags</th>
+                <th class="px-3 py-2">negative_context_level</th>
+                <th class="px-3 py-2">commercial_pr_level</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 align-top">
+              {#each form.previewResults as row}
+                <tr>
+                  <td class="px-3 py-2">{row.newsId}</td>
+                  <td class="px-3 py-2">{row.isHappyCandidate ? 'true' : 'false'}</td>
+                  <td class="px-3 py-2">{row.happyScore}</td>
+                  <td class="px-3 py-2">{row.topics.join(', ') || '-'}</td>
+                  <td class="px-3 py-2">{row.emotions.join(', ') || '-'}</td>
+                  <td class="px-3 py-2">{row.storyTypes.join(', ') || '-'}</td>
+                  <td class="px-3 py-2">{row.riskFlags.join(', ') || '-'}</td>
+                  <td class="px-3 py-2">{row.negativeContextLevel}</td>
+                  <td class="px-3 py-2">{row.commercialPrLevel}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
     </section>
   {/if}
 </section>
