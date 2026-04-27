@@ -42,7 +42,9 @@
 <section class="space-y-6">
   <div class="space-y-2">
     <h2 class="text-xl font-semibold">Fetched News List</h2>
-    <p class="text-sm text-slate-600">Admin protection will be added in a later task.</p>
+    <p class="text-sm text-slate-600">
+      Admin routes are protected when <code>ADMIN_SECRET</code> is configured; otherwise they are public.
+    </p>
   </div>
 
   {#if data.dbError}
