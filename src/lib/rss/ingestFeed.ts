@@ -7,6 +7,11 @@ import { normalizeUrl } from './normalizeUrl';
 import { parseRssXml } from './parseRss';
 import type { IngestFeedInput, IngestFeedResult, ParsedRssItem } from './types';
 
+const isServerRuntime = typeof window === 'undefined';
+
+if (!isServerRuntime) {
+  throw new Error('src/lib/rss/ingestFeed is server-only and must not be imported from client code.');
+}
 function isLikelyHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
