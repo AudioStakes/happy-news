@@ -54,6 +54,7 @@ describe('buildClassificationPrompt', () => {
     const prompt = buildClassificationPrompt(sampleItems);
 
     expect(prompt).toContain('URL先の記事ページを取得・閲覧しないこと');
+    expect(prompt).not.toContain('記事本文');
     expect(prompt).not.toContain('URLを取得して');
     expect(prompt).not.toContain('ページをクロール');
   });

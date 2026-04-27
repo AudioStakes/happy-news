@@ -50,7 +50,7 @@ export function buildClassificationPrompt(items: ClassificationPromptNewsItem[])
 厳守ルール:
 - 入力として渡されたメタデータのみを使用すること。
 - URL先の記事ページを取得・閲覧しないこと。
-- 記事本文の推測や要約をしないこと。
+- 提供メタデータを超える内容の推測や要約をしないこと。
 - RSS description は補助的なメタデータであり、不完全な可能性があることを前提に扱うこと。
 - 不確実な場合は保守的に判定すること。
 - SQLは絶対に出力しないこと。
