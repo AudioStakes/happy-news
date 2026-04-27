@@ -53,7 +53,8 @@ describe('parseRssXml', () => {
         </entry>
         <entry>
           <title>Atom entry two</title>
-          <link href="https://atom.example.com/post/2" />
+          <link rel="self" href="https://atom.example.com/post/2.xml" />
+          <link rel="alternate" href="https://atom.example.com/post/2" />
           <updated>2026-04-21T12:00:00Z</updated>
           <content>Body &amp; details</content>
         </entry>

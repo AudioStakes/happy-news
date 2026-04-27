@@ -15,7 +15,6 @@ Implemented now:
 - Basic `src/lib` folder structure for future business logic
 
 Not implemented yet:
-- RSS fetching + ingestion foundation
 - Classification workflow logic
 - Recommendation logic
 - Authentication

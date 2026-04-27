@@ -67,7 +67,16 @@ function getAtomLink(entryXml: string): string | null {
 
     const relMatch = link.match(/\srel=["']([^"']+)["']/i);
     const rel = relMatch ? relMatch[1].toLowerCase() : 'alternate';
-    if (rel !== 'alternate' && rel !== 'self') {
+    const href = decodeEntities(hrefMatch[1]).trim();
+
+    if (rel === 'alternate' && URL_PATTERN.test(href)) {
+      return href;
+    }
+  }
+
+  for (const link of links) {
+    const hrefMatch = link.match(/\shref=["']([^"']+)["']/i);
+    if (!hrefMatch) {
       continue;
     }
 

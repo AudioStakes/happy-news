@@ -1,7 +1,7 @@
 import 'server-only';
+
 import { eq } from 'drizzle-orm';
 
-import { NEWS_STATUSES } from '$lib/constants/classification';
 import type { Database } from '$lib/db/client';
 import { newsItems, rssFeeds } from '$lib/db/schema';
 
@@ -12,6 +12,15 @@ import type { IngestFeedInput, IngestFeedResult } from './types';
 
 function nowIsoString(): string {
   return new Date().toISOString();
+}
+
+function isLikelyHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 export async function ingestFeed(db: Database, feed: IngestFeedInput): Promise<IngestFeedResult> {
@@ -44,49 +53,45 @@ export async function ingestFeed(db: Database, feed: IngestFeedInput): Promise<I
   result.fetched = parsedItems.length;
 
   for (const item of parsedItems) {
-    const normalizedUrl = normalizeUrl(item.url);
-
-    if (!item.title.trim() || !normalizedUrl) {
+    if (!item.title.trim() || !isLikelyHttpUrl(item.url)) {
       result.skippedInvalid += 1;
       continue;
     }
 
-    const existing = await db
-      .select({ id: newsItems.id })
-      .from(newsItems)
-      .where(eq(newsItems.normalizedUrl, normalizedUrl))
-      .limit(1);
-
-    if (existing.length > 0) {
-      result.skippedDuplicates += 1;
+    const normalizedUrl = normalizeUrl(item.url);
+    if (!isLikelyHttpUrl(normalizedUrl)) {
+      result.skippedInvalid += 1;
       continue;
     }
 
     try {
-      await db.insert(newsItems).values({
-        title: item.title,
-        url: item.url,
-        normalizedUrl,
-        sourceName: feed.sourceName,
-        rssFeedId: feed.id,
-        publishedAt: item.publishedAt,
-        description: item.description,
-        language: feed.language,
-        country: feed.country,
-        status: NEWS_STATUSES[0],
-        fetchedAt: nowIsoString(),
-        updatedAt: nowIsoString()
-      });
+      const inserted = await db
+        .insert(newsItems)
+        .values({
+          title: item.title,
+          url: item.url,
+          normalizedUrl,
+          sourceName: feed.sourceName,
+          rssFeedId: feed.id,
+          publishedAt: item.publishedAt,
+          description: item.description,
+          language: feed.language,
+          country: feed.country,
+          status: 'unclassified',
+          fetchedAt: nowIsoString(),
+          updatedAt: nowIsoString()
+        })
+        .onConflictDoNothing({ target: newsItems.normalizedUrl })
+        .returning({ id: newsItems.id });
 
-      result.inserted += 1;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to insert news item';
-      if (message.toLowerCase().includes('unique')) {
+      if (inserted.length === 0) {
         result.skippedDuplicates += 1;
       } else {
-        result.skippedInvalid += 1;
-        result.errors.push(message);
+        result.inserted += inserted.length;
       }
+    } catch (error) {
+      result.skippedInvalid += 1;
+      result.errors.push(error instanceof Error ? error.message : 'Failed to insert news item');
     }
   }
 
