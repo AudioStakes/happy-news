@@ -8,11 +8,6 @@ import {
   USER_PREFERENCE_TARGET_TYPES
 } from '$lib/constants/classification';
 
-const newsStatusSql = NEWS_STATUSES.map((value) => `'${value}'`).join(', ');
-const classifiedBySql = CLASSIFIED_BY_VALUES.map((value) => `'${value}'`).join(', ');
-const importBatchStatusSql = IMPORT_BATCH_STATUSES.map((value) => `'${value}'`).join(', ');
-const userPreferenceTargetTypeSql = USER_PREFERENCE_TARGET_TYPES.map((value) => `'${value}'`).join(', ');
-
 export const rssFeeds = sqliteTable(
   'rss_feeds',
   {
@@ -49,7 +44,7 @@ export const newsItems = sqliteTable(
     description: text('description'),
     language: text('language').notNull().default('ja'),
     country: text('country').notNull().default('JP'),
-    status: text('status').notNull().default('unclassified'),
+    status: text('status').$type<(typeof NEWS_STATUSES)[number]>().notNull().default('unclassified'),
     fetchedAt: text('fetched_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
@@ -59,7 +54,10 @@ export const newsItems = sqliteTable(
     statusIdx: index('news_items_status_idx').on(table.status),
     publishedAtIdx: index('news_items_published_at_idx').on(table.publishedAt),
     rssFeedIdIdx: index('news_items_rss_feed_id_idx').on(table.rssFeedId),
-    statusCheck: check('news_items_status_check', sql`${table.status} in (${sql.raw(newsStatusSql)})`)
+    statusCheck: check(
+      'news_items_status_check',
+      sql`${table.status} in ('unclassified', 'candidate', 'rejected', 'archived')`
+    )
   })
 );
 
@@ -78,7 +76,7 @@ export const newsFeatures = sqliteTable(
     riskFlagsJson: text('risk_flags_json'),
     negativeContextLevel: integer('negative_context_level'),
     commercialPrLevel: integer('commercial_pr_level'),
-    classifiedBy: text('classified_by'),
+    classifiedBy: text('classified_by').$type<(typeof CLASSIFIED_BY_VALUES)[number] | null>(),
     classifiedAt: text('classified_at'),
     createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
@@ -100,7 +98,7 @@ export const newsFeatures = sqliteTable(
     ),
     classifiedByCheck: check(
       'news_features_classified_by_check',
-      sql`${table.classifiedBy} is null or ${table.classifiedBy} in (${sql.raw(classifiedBySql)})`
+      sql`${table.classifiedBy} is null or ${table.classifiedBy} in ('chatgpt_manual', 'keyword_rule', 'admin')`
     )
   })
 );
@@ -163,7 +161,7 @@ export const userPreferenceScores = sqliteTable(
     userId: integer('user_id')
       .notNull()
       .references(() => anonymousUsers.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    targetType: text('target_type').notNull(),
+    targetType: text('target_type').$type<(typeof USER_PREFERENCE_TARGET_TYPES)[number]>().notNull(),
     targetKey: text('target_key').notNull(),
     score: real('score').notNull().default(0),
     updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
@@ -177,7 +175,7 @@ export const userPreferenceScores = sqliteTable(
     ),
     targetTypeCheck: check(
       'user_preference_scores_target_type_check',
-      sql`${table.targetType} in (${sql.raw(userPreferenceTargetTypeSql)})`
+      sql`${table.targetType} in ('topic', 'emotion', 'story_type', 'risk_flag')`
     ),
     scoreCheck: check('user_preference_scores_score_check', sql`${table.score} >= 0 and ${table.score} <= 1`)
   })
@@ -187,7 +185,7 @@ export const adminImportBatches = sqliteTable(
   'admin_import_batches',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    status: text('status').notNull().default('pending'),
+    status: text('status').$type<(typeof IMPORT_BATCH_STATUSES)[number]>().notNull().default('pending'),
     inputNewsIdsJson: text('input_news_ids_json').notNull(),
     rawJson: text('raw_json').notNull(),
     validationErrorsJson: text('validation_errors_json'),
@@ -200,7 +198,7 @@ export const adminImportBatches = sqliteTable(
     createdAtIdx: index('admin_import_batches_created_at_idx').on(table.createdAt),
     statusCheck: check(
       'admin_import_batches_status_check',
-      sql`${table.status} in (${sql.raw(importBatchStatusSql)})`
+      sql`${table.status} in ('pending', 'validated', 'imported', 'failed')`
     )
   })
 );

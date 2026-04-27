@@ -76,7 +76,7 @@ Useful scripts:
 - `npm run format` – auto-format with Prettier
 - `npm run test` – run test suite (placeholder)
 - `npm run db:generate` – generate Drizzle migrations from current schema
-- `npm run db:migrate` – run Drizzle migrations
+- `npm run db:migrate` – Drizzle migration command (for SQLite/local workflows)
 
 ## Cloudflare / D1 setup notes
 
@@ -97,10 +97,11 @@ Generate a migration locally:
 npm run db:generate
 ```
 
-Apply migrations with Drizzle:
+Apply generated migrations to D1 with Wrangler:
 
 ```bash
-npm run db:migrate
+npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --local
+npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 ```
 
 > This project stores RSS metadata only. Do not store article body text or generated summaries.
