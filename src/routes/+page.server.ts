@@ -94,7 +94,9 @@ export const actions: Actions = {
       newsId: formData.get('news_id'),
       happyRating: formData.get('happy_rating'),
       reactionTags: formData.getAll('reaction_tags'),
-      openedFlag: formData.get('opened_flag')
+      // Do not trust the client-controlled hidden field for opened/read state.
+      // Treat submission time as the only server-observed signal available here.
+      openedFlag: 'true'
     });
 
     if (!validated.ok) {
