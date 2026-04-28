@@ -36,6 +36,15 @@ function parseDateValue(dateValue: string | null): number {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
+function getRecencyTimestamp(row: Pick<HomeNewsItem, 'publishedAt' | 'fetchedAt'>): number {
+  const publishedTimestamp = parseDateValue(row.publishedAt);
+  if (publishedTimestamp > 0) {
+    return publishedTimestamp;
+  }
+
+  return parseDateValue(row.fetchedAt);
+}
+
 function compareCandidateRows(
   left: CandidateNewsRow & { recommendationScore: number },
   right: CandidateNewsRow & { recommendationScore: number }
@@ -48,8 +57,8 @@ function compareCandidateRows(
     return (right.happyScore ?? 0) - (left.happyScore ?? 0);
   }
 
-  const rightRecency = Math.max(parseDateValue(right.publishedAt), parseDateValue(right.fetchedAt));
-  const leftRecency = Math.max(parseDateValue(left.publishedAt), parseDateValue(left.fetchedAt));
+  const rightRecency = getRecencyTimestamp(right);
+  const leftRecency = getRecencyTimestamp(left);
   if (leftRecency !== rightRecency) {
     return rightRecency - leftRecency;
   }
@@ -98,7 +107,7 @@ export async function getHomeNews(db: DbClient, userId: number, limit = DEFAULT_
           )`
         )
       )
-      .orderBy(desc(newsItems.fetchedAt), desc(newsItems.id))
+      .orderBy(sql`coalesce(${newsFeatures.happyScore}, 0) desc`, desc(newsItems.fetchedAt), desc(newsItems.id))
       .limit(candidatePoolSize)
   ]);
 

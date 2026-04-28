@@ -101,4 +101,17 @@ describe('scoreCandidateForUser', () => {
 
     expect(candidateA).toBe(candidateB);
   });
+
+  it('clamps out-of-range preference scores before using them', () => {
+    const overMax = score(
+      { topics: ['science'] },
+      [{ targetType: 'topic', targetKey: 'science', score: 99 }]
+    );
+    const clampedMax = score(
+      { topics: ['science'] },
+      [{ targetType: 'topic', targetKey: 'science', score: 1 }]
+    );
+
+    expect(overMax).toBeCloseTo(clampedMax);
+  });
 });

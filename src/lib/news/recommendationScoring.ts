@@ -9,6 +9,8 @@ const TOPIC_WEIGHT = 0.25;
 const EMOTION_WEIGHT = 0.2;
 const STORY_TYPE_WEIGHT = 0.15;
 const RISK_PENALTY_WEIGHT = 0.3;
+const MIN_SCORE = 0;
+const MAX_SCORE = 1;
 
 export type CandidateFeatureInput = {
   happyScore: number | null;
@@ -33,11 +35,23 @@ function averageOrDefault(values: number[], defaultValue: number): number {
   return sum / values.length;
 }
 
+function clampUnitScore(value: number): number {
+  if (value <= MIN_SCORE) {
+    return MIN_SCORE;
+  }
+
+  if (value >= MAX_SCORE) {
+    return MAX_SCORE;
+  }
+
+  return value;
+}
+
 function buildPreferenceLookup(preferences: UserPreferenceInput[]): Map<string, number> {
   const lookup = new Map<string, number>();
 
   for (const preference of preferences) {
-    lookup.set(`${preference.targetType}:${preference.targetKey}`, preference.score);
+    lookup.set(`${preference.targetType}:${preference.targetKey}`, clampUnitScore(preference.score));
   }
 
   return lookup;
@@ -67,7 +81,7 @@ export function scoreCandidateForUser(
   candidate: CandidateFeatureInput,
   preferences: UserPreferenceInput[]
 ): number {
-  const base = (candidate.happyScore ?? NEUTRAL_HAPPY_SCORE) / 100;
+  const base = clampUnitScore((candidate.happyScore ?? NEUTRAL_HAPPY_SCORE) / 100);
   const lookup = buildPreferenceLookup(preferences);
 
   const topicScore = getAveragePreferenceScore(
