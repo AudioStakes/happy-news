@@ -93,7 +93,8 @@ export const actions: Actions = {
     const validated = validateRatingInput({
       newsId: formData.get('news_id'),
       happyRating: formData.get('happy_rating'),
-      reactionTags: formData.getAll('reaction_tags')
+      reactionTags: formData.getAll('reaction_tags'),
+      openedAt: formData.get('opened_at')
     });
 
     if (!validated.ok) {
@@ -123,13 +124,27 @@ export const actions: Actions = {
       });
     }
 
+    const [existingRating] = await db
+      .select({ id: userRatings.id })
+      .from(userRatings)
+      .where(and(eq(userRatings.userId, anonymousUser.id), eq(userRatings.newsId, validated.value.newsId)))
+      .limit(1);
+
+    if (existingRating) {
+      return fail(409, {
+        success: false,
+        message: 'You already rated this article.'
+      });
+    }
+
     try {
       await db.insert(userRatings).values({
         userId: anonymousUser.id,
         newsId: validated.value.newsId,
         happyRating: validated.value.happyRating,
-        reactionTagsJson: JSON.stringify(validated.value.reactionTags),
-        openedAt: sql`CURRENT_TIMESTAMP`,
+        reactionTagsJson:
+          validated.value.reactionTags.length > 0 ? JSON.stringify(validated.value.reactionTags) : null,
+        openedAt: validated.value.openedAt ?? sql`CURRENT_TIMESTAMP`,
         ratedAt: sql`CURRENT_TIMESTAMP`
       });
     } catch (error) {

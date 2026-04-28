@@ -5,6 +5,16 @@
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
+  const openedAtByNewsId = $state<Record<number, string>>({});
+
+  function markAsOpened(newsId: number) {
+    if (openedAtByNewsId[newsId]) {
+      return;
+    }
+
+    openedAtByNewsId[newsId] = new Date().toISOString();
+  }
+
   function formatPublishedDate(publishedAt: string | null, fetchedAt: string) {
     const dateValue = publishedAt ?? fetchedAt;
     const parsed = new Date(dateValue);
@@ -64,12 +74,14 @@
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
+            onclick={() => markAsOpened(item.id)}
           >
             Read original article
           </a>
 
           <form method="POST" action="?/submitRating" class="mt-4 space-y-3 border-t border-slate-100 pt-4">
             <input type="hidden" name="news_id" value={item.id} />
+            <input type="hidden" name="opened_at" value={openedAtByNewsId[item.id] ?? ''} />
 
             <fieldset class="space-y-2">
               <legend class="text-sm font-medium text-slate-900">
@@ -108,10 +120,15 @@
 
             <button
               type="submit"
-              class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+              disabled={!openedAtByNewsId[item.id]}
             >
               Save rating
             </button>
+
+            {#if !openedAtByNewsId[item.id]}
+              <p class="text-xs text-slate-500">Read the article first, then rate it.</p>
+            {/if}
           </form>
         </article>
       {/each}

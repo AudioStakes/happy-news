@@ -7,6 +7,7 @@ export type RatingValidationResult =
         newsId: number;
         happyRating: number;
         reactionTags: string[];
+        openedAt: string | null;
       };
     }
   | {
@@ -27,10 +28,33 @@ function parsePositiveInteger(value: FormDataEntryValue | null): number | null {
   return parsed;
 }
 
+function parseOpenedAt(value: FormDataEntryValue | null): string | null | 'invalid' {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    return 'invalid';
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'invalid';
+  }
+
+  return parsed.toISOString();
+}
+
 export function validateRatingInput(input: {
   newsId: FormDataEntryValue | null;
   happyRating: FormDataEntryValue | null;
   reactionTags: FormDataEntryValue[];
+  openedAt: FormDataEntryValue | null;
 }): RatingValidationResult {
   const newsId = parsePositiveInteger(input.newsId);
   if (newsId === null) {
@@ -48,6 +72,11 @@ export function validateRatingInput(input: {
 
   if (parsedRating < 1 || parsedRating > 5) {
     return { ok: false, error: 'Happy rating must be between 1 and 5.' };
+  }
+
+  const openedAt = parseOpenedAt(input.openedAt);
+  if (openedAt === 'invalid') {
+    return { ok: false, error: 'Invalid opened timestamp.' };
   }
 
   const reactionTags: ReactionTag[] = [];
@@ -78,7 +107,8 @@ export function validateRatingInput(input: {
     value: {
       newsId,
       happyRating: parsedRating,
-      reactionTags
+      reactionTags,
+      openedAt
     }
   };
 }
