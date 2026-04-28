@@ -1,10 +1,10 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
 
 import type { UserPreferenceTargetType } from '$lib/constants/classification';
 import type { DbClient } from '$lib/db/client';
 import { newsFeatures, userPreferenceScores } from '$lib/db/schema';
 
-import { applyRatingDelta, getTagDelta, parseNewsFeatureTags } from './preferenceScoring';
+import { applyRatingDelta, parseNewsFeatureTags } from './preferenceScoring';
 
 export type UpdatePreferenceScoresInput = {
   db: DbClient;
@@ -46,11 +46,6 @@ async function updateTagsForType(
     return;
   }
 
-  const delta = getTagDelta(targetType, input.happyRating);
-  if (delta === 0) {
-    return;
-  }
-
   const existingRows = await input.db
     .select({
       id: userPreferenceScores.id,
@@ -72,6 +67,7 @@ async function updateTagsForType(
     targetType: UserPreferenceTargetType;
     targetKey: string;
     score: number;
+    updatedAt: SQL;
   }> = [];
 
   for (const targetKey of targetKeys) {
@@ -93,7 +89,8 @@ async function updateTagsForType(
       userId: input.userId,
       targetType,
       targetKey,
-      score: nextScore
+      score: nextScore,
+      updatedAt: sql`CURRENT_TIMESTAMP`
     });
   }
 
