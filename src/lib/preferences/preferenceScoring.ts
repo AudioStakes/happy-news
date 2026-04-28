@@ -1,6 +1,6 @@
 import type { UserPreferenceTargetType } from '$lib/constants/classification';
 
-const BASELINE_SCORE = 0.5;
+export const BASELINE_SCORE = 0.5;
 
 const CONTENT_DELTAS_BY_RATING: Record<number, number> = {
   1: -0.15,

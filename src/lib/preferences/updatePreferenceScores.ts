@@ -4,7 +4,7 @@ import type { UserPreferenceTargetType } from '$lib/constants/classification';
 import type { DbClient } from '$lib/db/client';
 import { newsFeatures, userPreferenceScores } from '$lib/db/schema';
 
-import { clampScore, getTagDelta, parseNewsFeatureTags } from './preferenceScoring';
+import { BASELINE_SCORE, clampScore, getTagDelta, parseNewsFeatureTags } from './preferenceScoring';
 
 export type UpdatePreferenceScoresInput = {
   db: DbClient;
@@ -31,30 +31,34 @@ export async function updatePreferenceScores(input: UpdatePreferenceScoresInput)
 
   const parsedTags = parseNewsFeatureTags(featureRow);
 
-  await updateTagsForType(input, 'topic', parsedTags.topics);
-  await updateTagsForType(input, 'emotion', parsedTags.emotions);
-  await updateTagsForType(input, 'story_type', parsedTags.storyTypes);
-  await updateTagsForType(input, 'risk_flag', parsedTags.riskFlags);
-}
+  const deltas: Record<UserPreferenceTargetType, number> = {
+    topic: getTagDelta('topic', input.happyRating),
+    emotion: getTagDelta('emotion', input.happyRating),
+    story_type: getTagDelta('story_type', input.happyRating),
+    risk_flag: getTagDelta('risk_flag', input.happyRating)
+  };
 
-async function updateTagsForType(
-  input: UpdatePreferenceScoresInput,
-  targetType: UserPreferenceTargetType,
-  targetKeys: string[]
-): Promise<void> {
-  if (targetKeys.length === 0) {
+  const tagGroups: Array<{ targetType: UserPreferenceTargetType; targetKeys: string[] }> = [
+    { targetType: 'topic', targetKeys: parsedTags.topics },
+    { targetType: 'emotion', targetKeys: parsedTags.emotions },
+    { targetType: 'story_type', targetKeys: parsedTags.storyTypes },
+    { targetType: 'risk_flag', targetKeys: parsedTags.riskFlags }
+  ];
+
+  const insertRows = tagGroups.flatMap(({ targetType, targetKeys }) => {
+    const initialScore = clampScore(BASELINE_SCORE + deltas[targetType]);
+    return targetKeys.map((targetKey) => ({
+      userId: input.userId,
+      targetType,
+      targetKey,
+      score: initialScore,
+      updatedAt: sql`CURRENT_TIMESTAMP`
+    }));
+  });
+
+  if (insertRows.length === 0) {
     return;
   }
-
-  const delta = getTagDelta(targetType, input.happyRating);
-  const initialScore = clampScore(0.5 + delta);
-  const insertRows = targetKeys.map((targetKey) => ({
-    userId: input.userId,
-    targetType,
-    targetKey,
-    score: initialScore,
-    updatedAt: sql`CURRENT_TIMESTAMP`
-  }));
 
   await input.db
     .insert(userPreferenceScores)
@@ -62,7 +66,13 @@ async function updateTagsForType(
     .onConflictDoUpdate({
       target: [userPreferenceScores.userId, userPreferenceScores.targetType, userPreferenceScores.targetKey],
       set: {
-        score: sql`min(1, max(0, ${userPreferenceScores.score} + ${delta}))`,
+        score: sql`min(1, max(0, ${userPreferenceScores.score} + case
+          when ${userPreferenceScores.targetType} = 'topic' then ${deltas.topic}
+          when ${userPreferenceScores.targetType} = 'emotion' then ${deltas.emotion}
+          when ${userPreferenceScores.targetType} = 'story_type' then ${deltas.story_type}
+          when ${userPreferenceScores.targetType} = 'risk_flag' then ${deltas.risk_flag}
+          else 0
+        end))`,
         updatedAt: sql`CURRENT_TIMESTAMP`
       }
     });

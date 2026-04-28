@@ -176,7 +176,7 @@ export const actions: Actions = {
         userId: anonymousUser.id,
         newsId: validated.value.newsId,
         happyRating: validated.value.happyRating,
-        error
+        error: error instanceof Error ? { message: error.message, name: error.name, cause: error.cause } : String(error)
       });
     }
 
