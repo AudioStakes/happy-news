@@ -1,7 +1,15 @@
 <script lang="ts">
-  import type { PageData } from './$types';
+  import type { ActionData, PageData } from './$types';
 
-  let { data }: { data: PageData } = $props();
+  import { REACTION_TAGS } from '$lib/ratings/reactionTags';
+
+  let { data, form }: { data: PageData; form: ActionData } = $props();
+
+  const openedByNewsId = $state<Record<number, boolean>>({});
+
+  function markAsOpened(newsId: number) {
+    openedByNewsId[newsId] = true;
+  }
 
   function formatPublishedDate(publishedAt: string | null, fetchedAt: string) {
     const dateValue = publishedAt ?? fetchedAt;
@@ -27,6 +35,14 @@
     </p>
   </header>
 
+  {#if form?.message}
+    <div
+      class={`rounded-lg border p-4 ${form.success ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-amber-300 bg-amber-50 text-amber-900'}`}
+    >
+      {form.message}
+    </div>
+  {/if}
+
   {#if data.dbError}
     <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900">
       {data.dbError}
@@ -42,7 +58,7 @@
   {:else}
     <div class="grid gap-4 md:grid-cols-3">
       {#each data.items as item}
-        <article class="flex h-full flex-col justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <article class="flex h-full flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div class="space-y-2">
             <h2 class="text-lg font-semibold leading-snug">{item.title}</h2>
             <p class="text-sm text-slate-600">Source: {item.sourceName}</p>
@@ -54,9 +70,62 @@
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
+            onclick={() => markAsOpened(item.id)}
           >
             Read original article
           </a>
+
+          <form method="POST" action="?/submitRating" class="mt-4 space-y-3 border-t border-slate-100 pt-4">
+            <input type="hidden" name="news_id" value={item.id} />
+            <input type="hidden" name="opened_flag" value={openedByNewsId[item.id] ? '1' : '0'} />
+
+            <fieldset class="space-y-2">
+              <legend class="text-sm font-medium text-slate-900">
+                After reading, how happy did this make you?
+              </legend>
+
+              <div class="flex flex-wrap gap-3">
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="radio" name="happy_rating" value="1" required /> 1 😐
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="radio" name="happy_rating" value="2" required /> 2 🙂
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="radio" name="happy_rating" value="3" required /> 3 😊
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="radio" name="happy_rating" value="4" required /> 4 😄
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="radio" name="happy_rating" value="5" required /> 5 🥰
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="space-y-2">
+              <legend class="text-sm font-medium text-slate-900">Optional reaction tags</legend>
+              <div class="flex flex-wrap gap-3">
+                {#each REACTION_TAGS as tag}
+                  <label class="flex items-center gap-2 text-sm text-slate-700">
+                    <input type="checkbox" name="reaction_tags" value={tag} /> {tag}
+                  </label>
+                {/each}
+              </div>
+            </fieldset>
+
+            <button
+              type="submit"
+              class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+              disabled={!openedByNewsId[item.id]}
+            >
+              Save rating
+            </button>
+
+            {#if !openedByNewsId[item.id]}
+              <p class="text-xs text-slate-500">Read the article first, then rate it.</p>
+            {/if}
+          </form>
         </article>
       {/each}
     </div>
