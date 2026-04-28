@@ -125,7 +125,9 @@ npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 - Cards show only title, source name, published date (or fetched date fallback), and an external article link.
 - Anonymous users are identified server-side with an `httpOnly` cookie and backed by the `anonymous_users` table.
 - Users can rate each shown article from 1 to 5 with optional reaction tags; ratings are stored in `user_ratings`.
-- Preference scoring and personalized recommendation tuning are intentionally deferred to future tasks.
+- User ratings now update app-side preference scores using existing classification tags (topic/emotion/story_type/risk_flag).
+- User preference analysis uses app-side scoring only; no AI API is used.
+- Personalized recommendation ranking/tuning remains a future task.
 
 ## Future implementation phases
 

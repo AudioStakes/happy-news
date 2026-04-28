@@ -7,6 +7,7 @@ import { createDb } from '$lib/db/client';
 import { newsFeatures, newsItems, userRatings } from '$lib/db/schema';
 import { getHomeNews } from '$lib/news/getHomeNews';
 import { validateRatingInput } from '$lib/ratings/ratingValidation';
+import { updatePreferenceScores } from '$lib/preferences/updatePreferenceScores';
 
 const HOME_DB_MISSING_MESSAGE = 'Happy news is unavailable right now. Please try again later.';
 
@@ -160,6 +161,22 @@ export const actions: Actions = {
       return fail(500, {
         success: false,
         message: 'Unable to save your rating right now. Please try again.'
+      });
+    }
+
+    try {
+      await updatePreferenceScores({
+        db,
+        userId: anonymousUser.id,
+        newsId: validated.value.newsId,
+        happyRating: validated.value.happyRating
+      });
+    } catch (error) {
+      console.error('Failed to update preference scores after rating insert.', {
+        userId: anonymousUser.id,
+        newsId: validated.value.newsId,
+        happyRating: validated.value.happyRating,
+        error
       });
     }
 
