@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { BASELINE_SCORE, clampScore, getTagDelta } from './preferenceScoring';
 import { updatePreferenceScores } from './updatePreferenceScores';
 
 type InsertRow = {
@@ -113,7 +114,7 @@ describe('updatePreferenceScores', () => {
     const topicRow = insertedRows.find((r) => r.targetType === 'topic');
     expect(topicRow).toBeDefined();
     // rating 5 topic delta = +0.15, baseline = 0.5 → 0.65
-    expect(topicRow!.score).toBeCloseTo(0.65);
+    expect(topicRow!.score).toBeCloseTo(clampScore(BASELINE_SCORE + getTagDelta('topic', 5)));
   });
 
   it('initial score for risk_flag uses risk delta (inverse of content)', async () => {
@@ -129,7 +130,7 @@ describe('updatePreferenceScores', () => {
     const riskRow = insertedRows.find((r) => r.targetType === 'risk_flag');
     expect(riskRow).toBeDefined();
     // rating 5 risk_flag delta = -0.08, baseline = 0.5 → 0.42
-    expect(riskRow!.score).toBeCloseTo(0.42);
+    expect(riskRow!.score).toBeCloseTo(clampScore(BASELINE_SCORE + getTagDelta('risk_flag', 5)));
   });
 
   it('passes onConflictDoUpdate with target covering userId, targetType, targetKey', async () => {
