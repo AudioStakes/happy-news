@@ -5,14 +5,10 @@
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
-  const openedAtByNewsId = $state<Record<number, string>>({});
+  const openedByNewsId = $state<Record<number, boolean>>({});
 
   function markAsOpened(newsId: number) {
-    if (openedAtByNewsId[newsId]) {
-      return;
-    }
-
-    openedAtByNewsId[newsId] = new Date().toISOString();
+    openedByNewsId[newsId] = true;
   }
 
   function formatPublishedDate(publishedAt: string | null, fetchedAt: string) {
@@ -81,7 +77,7 @@
 
           <form method="POST" action="?/submitRating" class="mt-4 space-y-3 border-t border-slate-100 pt-4">
             <input type="hidden" name="news_id" value={item.id} />
-            <input type="hidden" name="opened_at" value={openedAtByNewsId[item.id] ?? ''} />
+            <input type="hidden" name="opened_flag" value={openedByNewsId[item.id] ? '1' : '0'} />
 
             <fieldset class="space-y-2">
               <legend class="text-sm font-medium text-slate-900">
@@ -121,12 +117,12 @@
             <button
               type="submit"
               class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-              disabled={!openedAtByNewsId[item.id]}
+              disabled={!openedByNewsId[item.id]}
             >
               Save rating
             </button>
 
-            {#if !openedAtByNewsId[item.id]}
+            {#if !openedByNewsId[item.id]}
               <p class="text-xs text-slate-500">Read the article first, then rate it.</p>
             {/if}
           </form>

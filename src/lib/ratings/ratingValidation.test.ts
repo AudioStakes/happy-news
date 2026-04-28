@@ -9,7 +9,7 @@ describe('validateRatingInput', () => {
         newsId: '12',
         happyRating: '5',
         reactionTags: ['癒された', '感動した'],
-        openedAt: '2026-04-28T01:02:03.000Z'
+        openedFlag: '1'
       })
     ).toEqual({
       ok: true,
@@ -17,7 +17,7 @@ describe('validateRatingInput', () => {
         newsId: 12,
         happyRating: 5,
         reactionTags: ['癒された', '感動した'],
-        openedAt: '2026-04-28T01:02:03.000Z'
+        opened: true
       }
     });
   });
@@ -28,7 +28,7 @@ describe('validateRatingInput', () => {
         newsId: null,
         happyRating: '3',
         reactionTags: [],
-        openedAt: null
+        openedFlag: '0'
       })
     ).toEqual({ ok: false, error: 'Invalid article id.' });
   });
@@ -39,7 +39,7 @@ describe('validateRatingInput', () => {
         newsId: 'abc',
         happyRating: '3',
         reactionTags: [],
-        openedAt: null
+        openedFlag: '0'
       })
     ).toEqual({ ok: false, error: 'Invalid article id.' });
   });
@@ -50,7 +50,7 @@ describe('validateRatingInput', () => {
         newsId: '2',
         happyRating: '0',
         reactionTags: [],
-        openedAt: null
+        openedFlag: '0'
       })
     ).toEqual({ ok: false, error: 'Happy rating must be between 1 and 5.' });
   });
@@ -61,7 +61,7 @@ describe('validateRatingInput', () => {
         newsId: '2',
         happyRating: '6',
         reactionTags: [],
-        openedAt: null
+        openedFlag: '0'
       })
     ).toEqual({ ok: false, error: 'Happy rating must be between 1 and 5.' });
   });
@@ -72,7 +72,7 @@ describe('validateRatingInput', () => {
         newsId: '2',
         happyRating: '2.5',
         reactionTags: [],
-        openedAt: null
+        openedFlag: '0'
       })
     ).toEqual({ ok: false, error: 'Happy rating must be an integer from 1 to 5.' });
   });
@@ -83,7 +83,7 @@ describe('validateRatingInput', () => {
         newsId: '2',
         happyRating: '4',
         reactionTags: ['not-a-tag'],
-        openedAt: null
+        openedFlag: '0'
       })
     ).toEqual({ ok: false, error: 'Unknown reaction tag: not-a-tag' });
   });
@@ -94,19 +94,19 @@ describe('validateRatingInput', () => {
         newsId: '2',
         happyRating: '4',
         reactionTags: ['癒された', '癒された'],
-        openedAt: null
+        openedFlag: '0'
       })
     ).toEqual({ ok: false, error: 'Duplicate reaction tag: 癒された' });
   });
 
-  it('fails when opened_at is invalid', () => {
+  it('fails when opened_flag is invalid', () => {
     expect(
       validateRatingInput({
         newsId: '2',
         happyRating: '4',
         reactionTags: [],
-        openedAt: 'not-a-date'
+        openedFlag: 'true'
       })
-    ).toEqual({ ok: false, error: 'Invalid opened timestamp.' });
+    ).toEqual({ ok: false, error: 'Invalid opened flag.' });
   });
 });

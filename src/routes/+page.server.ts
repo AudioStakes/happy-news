@@ -94,7 +94,7 @@ export const actions: Actions = {
       newsId: formData.get('news_id'),
       happyRating: formData.get('happy_rating'),
       reactionTags: formData.getAll('reaction_tags'),
-      openedAt: formData.get('opened_at')
+      openedFlag: formData.get('opened_flag')
     });
 
     if (!validated.ok) {
@@ -144,7 +144,7 @@ export const actions: Actions = {
         happyRating: validated.value.happyRating,
         reactionTagsJson:
           validated.value.reactionTags.length > 0 ? JSON.stringify(validated.value.reactionTags) : null,
-        openedAt: validated.value.openedAt ?? sql`CURRENT_TIMESTAMP`,
+        openedAt: validated.value.opened ? sql`CURRENT_TIMESTAMP` : null,
         ratedAt: sql`CURRENT_TIMESTAMP`
       });
     } catch (error) {
