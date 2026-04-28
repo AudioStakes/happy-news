@@ -124,7 +124,8 @@ npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 - `/` now shows up to 3 classified candidate happy news cards.
 - Cards show only title, source name, published date (or fetched date fallback), and an external article link.
 - Anonymous users are identified server-side with an `httpOnly` cookie and backed by the `anonymous_users` table.
-- Rating UI and recommendation personalization are intentionally deferred to future tasks.
+- Users can rate each shown article from 1 to 5 with optional reaction tags; ratings are stored in `user_ratings`.
+- Preference scoring and personalized recommendation tuning are intentionally deferred to future tasks.
 
 ## Future implementation phases
 
