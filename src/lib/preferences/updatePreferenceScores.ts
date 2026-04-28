@@ -1,10 +1,10 @@
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import type { UserPreferenceTargetType } from '$lib/constants/classification';
 import type { DbClient } from '$lib/db/client';
 import { newsFeatures, userPreferenceScores } from '$lib/db/schema';
 
-import { applyRatingDelta, parseNewsFeatureTags } from './preferenceScoring';
+import { clampScore, getTagDelta, parseNewsFeatureTags } from './preferenceScoring';
 
 export type UpdatePreferenceScoresInput = {
   db: DbClient;
@@ -46,55 +46,24 @@ async function updateTagsForType(
     return;
   }
 
-  const existingRows = await input.db
-    .select({
-      id: userPreferenceScores.id,
-      targetKey: userPreferenceScores.targetKey,
-      score: userPreferenceScores.score
-    })
-    .from(userPreferenceScores)
-    .where(
-      and(
-        eq(userPreferenceScores.userId, input.userId),
-        eq(userPreferenceScores.targetType, targetType),
-        inArray(userPreferenceScores.targetKey, targetKeys)
-      )
-    );
+  const delta = getTagDelta(targetType, input.happyRating);
+  const initialScore = clampScore(0.5 + delta);
+  const insertRows = targetKeys.map((targetKey) => ({
+    userId: input.userId,
+    targetType,
+    targetKey,
+    score: initialScore,
+    updatedAt: sql`CURRENT_TIMESTAMP`
+  }));
 
-  const existingByKey = new Map(existingRows.map((row) => [row.targetKey, row]));
-  const inserts: Array<{
-    userId: number;
-    targetType: UserPreferenceTargetType;
-    targetKey: string;
-    score: number;
-    updatedAt: SQL;
-  }> = [];
-
-  for (const targetKey of targetKeys) {
-    const existing = existingByKey.get(targetKey);
-    const nextScore = applyRatingDelta(existing?.score, targetType, input.happyRating);
-
-    if (existing) {
-      await input.db
-        .update(userPreferenceScores)
-        .set({
-          score: nextScore,
-          updatedAt: sql`CURRENT_TIMESTAMP`
-        })
-        .where(eq(userPreferenceScores.id, existing.id));
-      continue;
-    }
-
-    inserts.push({
-      userId: input.userId,
-      targetType,
-      targetKey,
-      score: nextScore,
-      updatedAt: sql`CURRENT_TIMESTAMP`
+  await input.db
+    .insert(userPreferenceScores)
+    .values(insertRows)
+    .onConflictDoUpdate({
+      target: [userPreferenceScores.userId, userPreferenceScores.targetType, userPreferenceScores.targetKey],
+      set: {
+        score: sql`min(1, max(0, ${userPreferenceScores.score} + ${delta}))`,
+        updatedAt: sql`CURRENT_TIMESTAMP`
+      }
     });
-  }
-
-  if (inserts.length > 0) {
-    await input.db.insert(userPreferenceScores).values(inserts);
-  }
 }
