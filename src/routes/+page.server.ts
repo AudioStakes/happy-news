@@ -5,7 +5,7 @@ import { createDb } from '$lib/db/client';
 import { getHomeNews } from '$lib/news/getHomeNews';
 
 const HOME_DB_MISSING_MESSAGE =
-  'Cloudflare D1 binding is missing. Add DB to event.platform.env.DB before using /.';
+  'Happy news is unavailable right now. Please try again later.';
 
 const HOME_USER_ERROR_MESSAGE =
   'Unable to initialize anonymous user for this visit. Please refresh and try again.';
@@ -17,10 +17,10 @@ export const prerender = false;
 export const load: PageServerLoad = async (event) => {
   const database = event.platform?.env?.DB;
   if (!database) {
+    console.error('Cloudflare D1 binding is missing. Add DB to event.platform.env.DB.');
     return {
       dbError: HOME_DB_MISSING_MESSAGE,
       userError: null,
-      userPublicId: null,
       items: []
     };
   }
@@ -34,7 +34,6 @@ export const load: PageServerLoad = async (event) => {
     return {
       dbError: null,
       userError: HOME_USER_ERROR_MESSAGE,
-      userPublicId: null,
       items: []
     };
   }
@@ -45,14 +44,12 @@ export const load: PageServerLoad = async (event) => {
     return {
       dbError: null,
       userError: null,
-      userPublicId: anonymousUser.publicId,
       items
     };
   } catch {
     return {
       dbError: HOME_LOAD_ERROR_MESSAGE,
       userError: null,
-      userPublicId: anonymousUser.publicId,
       items: []
     };
   }

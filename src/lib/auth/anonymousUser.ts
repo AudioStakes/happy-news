@@ -1,4 +1,3 @@
-import { dev } from '$app/environment';
 import type { RequestEvent } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 
@@ -21,7 +20,14 @@ export function generateAnonymousPublicId(): string {
     return crypto.randomUUID();
   }
 
-  return `anon_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const randomBytes = new Uint8Array(16);
+    crypto.getRandomValues(randomBytes);
+    const randomHex = Array.from(randomBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `anon_${randomHex}`;
+  }
+
+  throw new Error('Secure random number generation is unavailable.');
 }
 
 export function isValidAnonymousPublicId(publicId: string): boolean {
@@ -39,8 +45,8 @@ export function buildAnonymousCookieOptions(secure: boolean) {
   };
 }
 
-function shouldUseSecureCookie(): boolean {
-  return !dev;
+function shouldUseSecureCookie(url: URL): boolean {
+  return url.protocol === 'https:';
 }
 
 async function createAnonymousUser(db: DbClient, preferredPublicId?: string): Promise<AnonymousUser> {
@@ -65,7 +71,12 @@ async function createAnonymousUser(db: DbClient, preferredPublicId?: string): Pr
       if (createdRows[0]) {
         return createdRows[0];
       }
-    } catch {
+    } catch (err) {
+      const isUniqueConstraintError =
+        err instanceof Error && err.message.includes('UNIQUE constraint failed');
+      if (!isUniqueConstraintError) {
+        throw err;
+      }
       publicId = generateAnonymousPublicId();
     }
   }
@@ -74,7 +85,7 @@ async function createAnonymousUser(db: DbClient, preferredPublicId?: string): Pr
 }
 
 export async function getOrCreateAnonymousUser(event: RequestEvent, db: DbClient): Promise<AnonymousUser> {
-  const secure = shouldUseSecureCookie();
+  const secure = shouldUseSecureCookie(event.url);
   const rawCookieValue = event.cookies.get(ANONYMOUS_USER_COOKIE_NAME);
   const cookiePublicId = rawCookieValue && isValidAnonymousPublicId(rawCookieValue) ? rawCookieValue : null;
 

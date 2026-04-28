@@ -22,7 +22,7 @@ export async function getHomeNews(db: DbClient, userId: number, limit = 3): Prom
       url: newsItems.url,
       sourceName: newsItems.sourceName,
       publishedAt: newsItems.publishedAt,
-      fetchedAt: newsItems.fetchedAt
+      fetchedAt: sql<string>`strftime('%Y-%m-%dT%H:%M:%SZ', ${newsItems.fetchedAt})`
     })
     .from(newsItems)
     .innerJoin(newsFeatures, eq(newsFeatures.newsId, newsItems.id))
@@ -40,7 +40,6 @@ export async function getHomeNews(db: DbClient, userId: number, limit = 3): Prom
     )
     .orderBy(
       sql`coalesce(${newsFeatures.happyScore}, 0) desc`,
-      desc(newsItems.publishedAt),
       desc(newsItems.fetchedAt),
       desc(newsItems.id)
     )
