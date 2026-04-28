@@ -23,6 +23,13 @@ describe('preferenceScoring', () => {
     expect(getTagDelta('topic', 1)).toBeLessThan(0);
   });
 
+  it('uses expected deltas for content and risk flags', () => {
+    expect(getTagDelta('topic', 5)).toBe(0.15);
+    expect(getTagDelta('topic', 2)).toBe(-0.08);
+    expect(getTagDelta('risk_flag', 5)).toBe(-0.08);
+    expect(getTagDelta('risk_flag', 2)).toBe(0.08);
+  });
+
   it('getTagDelta increases risk_flag score for low ratings', () => {
     expect(getTagDelta('risk_flag', 1)).toBeGreaterThan(0);
   });
@@ -53,6 +60,10 @@ describe('preferenceScoring', () => {
 
   it('scores never go above 1', () => {
     expect(applyRatingDelta(0.95, 'risk_flag', 1)).toBe(1);
+  });
+
+  it('starts from neutral baseline for missing score rows', () => {
+    expect(applyRatingDelta(undefined, 'topic', 4)).toBe(0.58);
   });
 
   it('invalid JSON tag arrays become empty', () => {

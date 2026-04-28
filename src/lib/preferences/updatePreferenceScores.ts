@@ -1,10 +1,10 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { UserPreferenceTargetType } from '$lib/constants/classification';
 import type { DbClient } from '$lib/db/client';
 import { newsFeatures, userPreferenceScores } from '$lib/db/schema';
 
-import { applyRatingDelta, parseNewsFeatureTags } from './preferenceScoring';
+import { applyRatingDelta, getTagDelta, parseNewsFeatureTags } from './preferenceScoring';
 
 export type UpdatePreferenceScoresInput = {
   db: DbClient;
@@ -42,22 +42,40 @@ async function updateTagsForType(
   targetType: UserPreferenceTargetType,
   targetKeys: string[]
 ): Promise<void> {
-  for (const targetKey of targetKeys) {
-    const [existing] = await input.db
-      .select({
-        id: userPreferenceScores.id,
-        score: userPreferenceScores.score
-      })
-      .from(userPreferenceScores)
-      .where(
-        and(
-          eq(userPreferenceScores.userId, input.userId),
-          eq(userPreferenceScores.targetType, targetType),
-          eq(userPreferenceScores.targetKey, targetKey)
-        )
-      )
-      .limit(1);
+  if (targetKeys.length === 0) {
+    return;
+  }
 
+  const delta = getTagDelta(targetType, input.happyRating);
+  if (delta === 0) {
+    return;
+  }
+
+  const existingRows = await input.db
+    .select({
+      id: userPreferenceScores.id,
+      targetKey: userPreferenceScores.targetKey,
+      score: userPreferenceScores.score
+    })
+    .from(userPreferenceScores)
+    .where(
+      and(
+        eq(userPreferenceScores.userId, input.userId),
+        eq(userPreferenceScores.targetType, targetType),
+        inArray(userPreferenceScores.targetKey, targetKeys)
+      )
+    );
+
+  const existingByKey = new Map(existingRows.map((row) => [row.targetKey, row]));
+  const inserts: Array<{
+    userId: number;
+    targetType: UserPreferenceTargetType;
+    targetKey: string;
+    score: number;
+  }> = [];
+
+  for (const targetKey of targetKeys) {
+    const existing = existingByKey.get(targetKey);
     const nextScore = applyRatingDelta(existing?.score, targetType, input.happyRating);
 
     if (existing) {
@@ -68,16 +86,18 @@ async function updateTagsForType(
           updatedAt: sql`CURRENT_TIMESTAMP`
         })
         .where(eq(userPreferenceScores.id, existing.id));
-
       continue;
     }
 
-    await input.db.insert(userPreferenceScores).values({
+    inserts.push({
       userId: input.userId,
       targetType,
       targetKey,
-      score: nextScore,
-      updatedAt: sql`CURRENT_TIMESTAMP`
+      score: nextScore
     });
+  }
+
+  if (inserts.length > 0) {
+    await input.db.insert(userPreferenceScores).values(inserts);
   }
 }
