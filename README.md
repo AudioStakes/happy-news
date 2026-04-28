@@ -127,7 +127,9 @@ npx wrangler d1 migrations apply <YOUR_DATABASE_NAME> --remote
 - Users can rate each shown article from 1 to 5 with optional reaction tags; ratings are stored in `user_ratings`.
 - User ratings now update app-side preference scores using existing classification tags (topic/emotion/story_type/risk_flag).
 - User preference analysis uses app-side scoring only; no AI API is used.
-- Personalized recommendation ranking/tuning remains a future task.
+- Home recommendations now use app-side preference scores (topic/emotion/story type with risk-flag penalties) for ranking.
+- Personalization still does not use any AI API.
+- Internal classification tags and scoring details remain hidden from user-facing UI.
 
 ## Future implementation phases
 

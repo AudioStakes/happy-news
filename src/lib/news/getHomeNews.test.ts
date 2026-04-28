@@ -1,127 +1,191 @@
 import { describe, expect, it } from 'vitest';
 
-import type { HomeNewsItem } from './getHomeNews';
+import type { UserPreferenceTargetType } from '$lib/constants/classification';
+
 import { getHomeNews } from './getHomeNews';
 
-type MockRow = HomeNewsItem;
+type CandidateRow = {
+  id: number;
+  title: string;
+  url: string;
+  sourceName: string;
+  publishedAt: string | null;
+  fetchedAt: string;
+  happyScore: number | null;
+  topicsJson: string | null;
+  emotionsJson: string | null;
+  storyTypesJson: string | null;
+  riskFlagsJson: string | null;
+};
 
-function createMockDb(rows: MockRow[] = []) {
-  let capturedLimit: number | undefined;
-  const capturedWhereArgs: unknown[] = [];
-  let capturedOrderArgs: unknown[] = [];
+type PreferenceRow = {
+  targetType: UserPreferenceTargetType;
+  targetKey: string;
+  score: number;
+};
 
-  const chain = {
-    from: () => chain,
-    innerJoin: () => chain,
-    where: (...args: unknown[]) => {
-      capturedWhereArgs.push(...args);
-      return chain;
-    },
-    orderBy: (...args: unknown[]) => {
-      capturedOrderArgs = args;
-      return chain;
-    },
+function createMockDb(preferences: PreferenceRow[], candidates: CandidateRow[]) {
+  let candidateLimit: number | undefined;
+
+  const preferenceChain = {
+    from: () => preferenceChain,
+    where: () => Promise.resolve(preferences)
+  };
+
+  const candidateChain = {
+    from: () => candidateChain,
+    innerJoin: () => candidateChain,
+    where: () => candidateChain,
+    orderBy: () => candidateChain,
     limit: (n: number) => {
-      capturedLimit = n;
-      return Promise.resolve(rows);
+      candidateLimit = n;
+      return Promise.resolve(candidates);
     }
   };
 
   const db = {
-    select: () => chain
+    select: (selection: Record<string, unknown>) => {
+      if ('targetType' in selection && 'targetKey' in selection && 'score' in selection) {
+        return preferenceChain;
+      }
+
+      return candidateChain;
+    }
   };
 
   return {
     db,
-    getCapturedLimit: () => capturedLimit,
-    getCapturedWhereArgs: () => capturedWhereArgs,
-    getCapturedOrderArgs: () => capturedOrderArgs
+    getCandidateLimit: () => candidateLimit
   };
 }
 
-const sampleRows: MockRow[] = [
-  {
-    id: 1,
-    title: 'Happy Story',
-    url: 'https://example.com/1',
-    sourceName: 'Example News',
-    publishedAt: '2026-04-20T10:00:00Z',
-    fetchedAt: '2026-04-20T12:00:00Z'
-  },
-  {
-    id: 2,
-    title: 'Another Happy Story',
-    url: 'https://example.com/2',
-    sourceName: 'Example News',
-    publishedAt: null,
-    fetchedAt: '2026-04-20T11:00:00Z'
-  }
-];
-
 describe('getHomeNews', () => {
-  it('returns rows provided by the db query', async () => {
-    const { db } = createMockDb(sampleRows);
-    const result = await getHomeNews(db as never, 42);
+  it('uses default limit and fetches a larger candidate pool', async () => {
+    const { db, getCandidateLimit } = createMockDb([], []);
 
-    expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({ id: 1, title: 'Happy Story' });
-    expect(result[1]).toMatchObject({ id: 2, title: 'Another Happy Story' });
-  });
-
-  it('uses default limit of 3 when no limit argument is given', async () => {
-    const { db, getCapturedLimit } = createMockDb();
-    await getHomeNews(db as never, 1);
-
-    expect(getCapturedLimit()).toBe(3);
-  });
-
-  it('passes the given limit through when it is within bounds', async () => {
-    const { db, getCapturedLimit } = createMockDb();
-    await getHomeNews(db as never, 1, 5);
-
-    expect(getCapturedLimit()).toBe(5);
-  });
-
-  it('clamps limit to a maximum of 10', async () => {
-    const { db, getCapturedLimit } = createMockDb();
-    await getHomeNews(db as never, 1, 20);
-
-    expect(getCapturedLimit()).toBe(10);
-  });
-
-  it('falls back to default limit 3 when limit is zero', async () => {
-    const { db, getCapturedLimit } = createMockDb();
-    await getHomeNews(db as never, 1, 0);
-
-    expect(getCapturedLimit()).toBe(3);
-  });
-
-  it('falls back to default limit 3 when limit is negative', async () => {
-    const { db, getCapturedLimit } = createMockDb();
-    await getHomeNews(db as never, 1, -5);
-
-    expect(getCapturedLimit()).toBe(3);
-  });
-
-  it('falls back to default limit 3 when limit is not an integer', async () => {
-    const { db, getCapturedLimit } = createMockDb();
-    await getHomeNews(db as never, 1, 2.7);
-
-    expect(getCapturedLimit()).toBe(3);
-  });
-
-  it('returns an empty array when no rows match', async () => {
-    const { db } = createMockDb([]);
-    const result = await getHomeNews(db as never, 1);
+    const result = await getHomeNews(db as never, 10);
 
     expect(result).toEqual([]);
+    expect(getCandidateLimit()).toBe(50);
   });
 
-  it('applies 3 order-by expressions (score, fetchedAt, id)', async () => {
-    const { db, getCapturedOrderArgs } = createMockDb();
-    await getHomeNews(db as never, 1);
+  it('clamps requested limit to maximum and still uses candidate pool fetch', async () => {
+    const { db, getCandidateLimit } = createMockDb([], []);
 
-    // coalesce(happy_score, 0) desc, fetchedAt desc, id desc
-    expect(getCapturedOrderArgs()).toHaveLength(3);
+    await getHomeNews(db as never, 10, 999);
+
+    expect(getCandidateLimit()).toBe(50);
+  });
+
+  it('returns only user-facing fields', async () => {
+    const candidateRows: CandidateRow[] = [
+      {
+        id: 1,
+        title: 'Happy Story',
+        url: 'https://example.com/1',
+        sourceName: 'Example',
+        publishedAt: '2026-04-20T00:00:00Z',
+        fetchedAt: '2026-04-20T01:00:00Z',
+        happyScore: 95,
+        topicsJson: '["science"]',
+        emotionsJson: '["hope"]',
+        storyTypesJson: '["rescue"]',
+        riskFlagsJson: '[]'
+      }
+    ];
+
+    const { db } = createMockDb([], candidateRows);
+    const result = await getHomeNews(db as never, 1, 1);
+
+    expect(result).toEqual([
+      {
+        id: 1,
+        title: 'Happy Story',
+        url: 'https://example.com/1',
+        sourceName: 'Example',
+        publishedAt: '2026-04-20T00:00:00Z',
+        fetchedAt: '2026-04-20T01:00:00Z'
+      }
+    ]);
+  });
+
+  it('uses preference scores for ranking and keeps deterministic tie-breakers', async () => {
+    const candidateRows: CandidateRow[] = [
+      {
+        id: 1,
+        title: 'Matched Preference',
+        url: 'https://example.com/1',
+        sourceName: 'Example',
+        publishedAt: '2026-04-20T00:00:00Z',
+        fetchedAt: '2026-04-20T01:00:00Z',
+        happyScore: 70,
+        topicsJson: '["science"]',
+        emotionsJson: '[]',
+        storyTypesJson: '[]',
+        riskFlagsJson: '[]'
+      },
+      {
+        id: 2,
+        title: 'No Preference Match',
+        url: 'https://example.com/2',
+        sourceName: 'Example',
+        publishedAt: '2026-04-22T00:00:00Z',
+        fetchedAt: '2026-04-22T01:00:00Z',
+        happyScore: 70,
+        topicsJson: '["sports"]',
+        emotionsJson: '[]',
+        storyTypesJson: '[]',
+        riskFlagsJson: '[]'
+      }
+    ];
+
+    const preferences: PreferenceRow[] = [
+      {
+        targetType: 'topic',
+        targetKey: 'science',
+        score: 0.95
+      }
+    ];
+
+    const { db } = createMockDb(preferences, candidateRows);
+    const result = await getHomeNews(db as never, 1, 2);
+
+    expect(result.map((row) => row.id)).toEqual([1, 2]);
+  });
+
+  it('falls back to recency and id ordering when recommendation scores are tied', async () => {
+    const candidateRows: CandidateRow[] = [
+      {
+        id: 2,
+        title: 'Older',
+        url: 'https://example.com/2',
+        sourceName: 'Example',
+        publishedAt: '2026-04-20T00:00:00Z',
+        fetchedAt: '2026-04-20T01:00:00Z',
+        happyScore: 80,
+        topicsJson: '[]',
+        emotionsJson: '[]',
+        storyTypesJson: '[]',
+        riskFlagsJson: '[]'
+      },
+      {
+        id: 1,
+        title: 'Newer',
+        url: 'https://example.com/1',
+        sourceName: 'Example',
+        publishedAt: '2026-04-21T00:00:00Z',
+        fetchedAt: '2026-04-21T01:00:00Z',
+        happyScore: 80,
+        topicsJson: '[]',
+        emotionsJson: '[]',
+        storyTypesJson: '[]',
+        riskFlagsJson: '[]'
+      }
+    ];
+
+    const { db } = createMockDb([], candidateRows);
+    const result = await getHomeNews(db as never, 1, 2);
+
+    expect(result.map((row) => row.id)).toEqual([1, 2]);
   });
 });
